@@ -1,0 +1,120 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+const app = require('../app');
+const debug = require('debug')('abiyyu-wahib-imantara:server');
+const http = require('http');
+const User = require('../models/User');
+require('dotenv').config();
+var mongoose = require('mongoose');
+mongoose.Promise = global.Promise;
+
+const connectDb = () => {
+  return mongoose.connect(process.env.DATABASE_URL);
+};
+
+//setup port constants
+const port = normalizePort(process.env.PORT || '3000');
+
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+const server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+const eraseDatabaseOnSync = true;
+
+connectDb().then(async () => {
+  if (eraseDatabaseOnSync) {
+    await Promise.all([User.deleteMany({})]);
+
+    createAdmin();
+  }
+
+  server.listen(port);
+  server.on('error', onError);
+  server.on('listening', onListening);
+});
+
+const createAdmin = async () => {
+  var user = new User({
+    userName: 'imantaraabiyyu',
+    accountNumber: '123456789',
+    emailAddress: 'admin@gmail.com',
+    identityNumber: '123456789',
+    password: 'admin123',
+    role: 'admin'
+  });
+
+  await user.save(function (err) {
+    if (err) {
+      console.log(err);
+    } else {
+      console.log('Successfully created an user.');
+      console.log('email: admin@gmail.com');
+      console.log('password: admin123');
+    }
+  });
+};
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  const port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  const addr = server.address();
+  const bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
